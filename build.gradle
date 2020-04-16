@@ -1,0 +1,29 @@
+plugins {
+    id 'application'
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+application {
+    mainClassName = 'com.nslauncher.patcher.AuthlibPatcher'
+}
+
+
+group 'com.nslauncher'
+version '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile 'org.ow2.asm:asm-util:8.0.1'
+    compile 'org.ow2.asm:asm:8.0.1'
+    compile group: 'net.lingala.zip4j', name: 'zip4j', version: '2.5.1'
+}
