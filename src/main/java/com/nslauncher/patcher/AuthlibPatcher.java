@@ -5,15 +5,15 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.ZipParameters;
 import org.objectweb.asm.*;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldInsnNode;
-import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.*;
 
+import javax.swing.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
+import java.util.Optional;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -26,9 +26,46 @@ public class AuthlibPatcher {
         String url = args[1];
         String jar = args[0];
         byte[] bytes = getBytes("com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", jar);
-        saveBytes(jar, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", transformSessionService(bytes, url));
+        if (bytes != null)
+            saveBytes(jar, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", transformSessionService(bytes, url));
         bytes = getBytes("com/mojang/authlib/properties/Property.class", jar);
-        saveBytes(jar, "com/mojang/authlib/properties/Property.class", transformCheckSignature(bytes));
+        if (bytes != null)
+            saveBytes(jar, "com/mojang/authlib/properties/Property.class", transformCheckSignature(bytes));
+        bytes = getBytes("net/md_5/bungee/connection/InitialHandler.class", jar);
+        if (bytes != null)
+            saveBytes(jar, "net/md_5/bungee/connection/InitialHandler.class", transformBungee(bytes, url));
+    }
+
+    private static byte[] transformBungee(byte[] bytes, String url) {
+        ClassReader classReader = new ClassReader(bytes);
+        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES);
+        ClassNode classNode = new ClassNode();
+        classReader.accept(classNode, 0);
+        classNode.methods.stream()
+                .filter(methodNode -> methodNode.name.equals("handle"))
+                .forEach(methodNode -> methodNode.instructions.forEach(ins -> {
+                    if (ins.getOpcode() == Opcodes.LDC) {
+                        LdcInsnNode ldcInsnNode = (LdcInsnNode) ins;
+                        boolean isAuthUrl = Optional.ofNullable(ins.getNext())
+                                .map(AbstractInsnNode::getNext)
+                                .flatMap(abstractInsnNode ->  {
+                                    if (abstractInsnNode instanceof VarInsnNode) {
+                                        if (abstractInsnNode.getOpcode() == Opcodes.ALOAD){
+                                            return Optional.of(((VarInsnNode) abstractInsnNode).var == 5);
+                                        }
+                                    }
+                                    return Optional.empty();
+                                })
+                                .orElse(false);
+                        if (isAuthUrl) {
+                            ldcInsnNode.cst = url + "/hasJoined?username=";
+
+                        }
+                    }
+                }));
+        classNode.accept(new ClassVisitor(Opcodes.ASM5, classWriter) {
+        });
+        return classWriter.toByteArray();
     }
 
     private static byte[] transformCheckSignature(byte[] bytes) {
@@ -103,7 +140,7 @@ public class AuthlibPatcher {
                 }
             }
         }
-        throw new IOException("File not found");
+        return null;
     }
 
     private static byte[] getBytes(InputStream is) throws IOException {
