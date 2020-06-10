@@ -7,7 +7,7 @@ import net.lingala.zip4j.model.ZipParameters;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-import javax.swing.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,8 +23,8 @@ import java.util.jar.JarFile;
 public class AuthlibPatcher {
 
     public static void main(String[] args) throws Exception {
-        String url = args[1];
-        String jar = args[0];
+        String url = "http://localhost:8080";
+        String jar = "D:\\forge\\.launcher1.15.2\\libraries\\com\\mojang\\authlib\\1.5.25\\authlib.jar";
         byte[] bytes = getBytes("com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", jar);
         if (bytes != null)
             saveBytes(jar, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", transformSessionService(bytes, url));
@@ -77,6 +77,8 @@ public class AuthlibPatcher {
                 MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
                 if ("isSignatureValid".equals(name)) {
                     return new Visitor(visitor);
+                } else if ("hasSignature".equals(name)) {
+                    return new Visitor(visitor);
                 }
                 return visitor;
             }
@@ -97,9 +99,9 @@ public class AuthlibPatcher {
                         if (ins.getNext().getNext().getOpcode() == Opcodes.PUTSTATIC) {
                             FieldInsnNode fieldInsnNode = (FieldInsnNode) ins.getNext().getNext();
                             if (fieldInsnNode.name.equals("CHECK_URL")) {
-                                ldcInsnNode.cst = url + "/join";
-                            } else if (fieldInsnNode.name.equals("JOIN_URL")) {
                                 ldcInsnNode.cst = url + "/hasJoined";
+                            } else if (fieldInsnNode.name.equals("JOIN_URL")) {
+                                ldcInsnNode.cst = url + "/join";
                             }
                         }
                     }
@@ -166,6 +168,7 @@ public class AuthlibPatcher {
             visitor.visitCode();
             visitor.visitInsn(Opcodes.ICONST_1);
             visitor.visitInsn(Opcodes.IRETURN);
+            visitor.visitMaxs(1, 1);
             visitor.visitEnd();
         }
     }
