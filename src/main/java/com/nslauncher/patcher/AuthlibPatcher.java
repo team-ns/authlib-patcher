@@ -23,8 +23,8 @@ import java.util.jar.JarFile;
 public class AuthlibPatcher {
 
     public static void main(String[] args) throws Exception {
-        String url = "http://localhost:8080";
-        String jar = "D:\\forge\\.launcher1.15.2\\libraries\\com\\mojang\\authlib\\1.5.25\\authlib.jar";
+        String url = arg[1];
+        String jar = arg[0];
         byte[] bytes = getBytes("com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", jar);
         if (bytes != null)
             saveBytes(jar, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService.class", transformSessionService(bytes, url));
