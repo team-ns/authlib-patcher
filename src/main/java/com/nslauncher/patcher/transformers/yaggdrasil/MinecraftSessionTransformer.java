@@ -20,7 +20,7 @@ public class MinecraftSessionTransformer extends Transformer {
     @Override
     public byte[] transform(byte[] bytecode, Config config) {
         ClassReader classReader = new ClassReader(bytecode);
-        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES);
+        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_MAXS);
         ClassNode classNode = new ClassNode();
         classReader.accept(classNode, 0);
         if (classNode.methods.stream().noneMatch(methodNode -> methodNode.name.equals("proxyUrl"))) {
@@ -84,7 +84,7 @@ public class MinecraftSessionTransformer extends Transformer {
         Label label3 = new Label();
         methodVisitor.visitLabel(label3);
         methodVisitor.visitLocalVariable("url", "Ljava/lang/String;", null, label0, label3, 0);
-        methodVisitor.visitMaxs(2, 1);
+        methodVisitor.visitMaxs(1, 1);
         methodVisitor.visitEnd();
     }
 
@@ -124,7 +124,7 @@ public class MinecraftSessionTransformer extends Transformer {
             Label label3 = new Label();
             methodVisitor.visitLabel(label3);
             methodVisitor.visitLocalVariable("url", "Ljava/lang/String;", null, label0, label3, 0);
-            methodVisitor.visitMaxs(2, 1);
+            methodVisitor.visitMaxs(1, 1);
             methodVisitor.visitEnd();
         }
     }
@@ -190,7 +190,7 @@ public class MinecraftSessionTransformer extends Transformer {
             methodVisitor.visitLineNumber(83, label4);
             methodVisitor.visitVarInsn(ALOAD, 0);
             methodVisitor.visitVarInsn(ALOAD, 4);
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "com/mojang/authlib/yggdrasil/YggdrasilAuthenticationService", "launcherJoinRequest", "(Lcom/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest;)V", false);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService", "launcherJoinRequest", "(Lcom/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest;)V", false);
             Label label5 = new Label();
             methodVisitor.visitLabel(label5);
             methodVisitor.visitLineNumber(84, label5);
