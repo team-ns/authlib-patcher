@@ -59,7 +59,7 @@ public class MinecraftSessionTransformer extends Transformer {
         return classWriter.toByteArray();
     }
 
-    private void makeProxy(MethodVisitor methodVisitor, Config config) {
+    private static void makeProxy(MethodVisitor methodVisitor, Config config) {
         methodVisitor.visitCode();
         Label label0 = new Label();
         methodVisitor.visitLabel(label0);
@@ -100,32 +100,7 @@ public class MinecraftSessionTransformer extends Transformer {
 
         @Override
         public void visitCode() {
-            methodVisitor.visitCode();
-            Label label0 = new Label();
-            methodVisitor.visitLabel(label0);
-            methodVisitor.visitLineNumber(10, label0);
-            methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitLdcInsn("join");
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
-            Label label1 = new Label();
-            methodVisitor.visitJumpInsn(IFEQ, label1);
-            Label label2 = new Label();
-            methodVisitor.visitLabel(label2);
-            methodVisitor.visitLineNumber(11, label2);
-            methodVisitor.visitLdcInsn(config.getBaseUrl() + "/join");
-            methodVisitor.visitMethodInsn(INVOKESTATIC, "com/mojang/authlib/HttpAuthenticationService", "constantURL", "(Ljava/lang/String;)Ljava/net/URL;", false);
-            methodVisitor.visitInsn(ARETURN);
-            methodVisitor.visitLabel(label1);
-            methodVisitor.visitLineNumber(13, label1);
-            methodVisitor.visitFrame(F_NEW, 0, null, 0, null);
-            methodVisitor.visitLdcInsn(config.getBaseUrl() + "/hasJoined");
-            methodVisitor.visitMethodInsn(INVOKESTATIC, "com/mojang/authlib/HttpAuthenticationService", "constantURL", "(Ljava/lang/String;)Ljava/net/URL;", false);
-            methodVisitor.visitInsn(ARETURN);
-            Label label3 = new Label();
-            methodVisitor.visitLabel(label3);
-            methodVisitor.visitLocalVariable("url", "Ljava/lang/String;", null, label0, label3, 0);
-            methodVisitor.visitMaxs(1, 1);
-            methodVisitor.visitEnd();
+           makeProxy(methodVisitor, config);
         }
     }
 
