@@ -2,6 +2,7 @@ plugins {
     id 'application'
     id 'java'
     id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'org.graalvm.buildtools.native' version '0.9.5'
 }
 
 compileJava.options.encoding = 'UTF-8'
@@ -14,6 +15,7 @@ application {
 group 'com.nslauncher'
 version '1.0'
 
+
 repositories {
     mavenCentral()
 }
@@ -22,10 +24,39 @@ sourceCompatibility = '11'
 targetCompatibility = '11'
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    compile 'org.ow2.asm:asm-util:8.0.1'
-    compile 'org.ow2.asm:asm:8.0.1'
-    compile group: 'net.lingala.zip4j', name: 'zip4j', version: '2.5.1'
-    compile 'info.picocli:picocli:4.4.0'
-    annotationProcessor 'info.picocli:picocli-codegen:4.4.0'
+    implementation 'org.ow2.asm:asm-util:8.0.1'
+    implementation 'org.ow2.asm:asm:8.0.1'
+    implementation group: 'net.lingala.zip4j', name: 'zip4j', version: '2.5.1'
+    implementation 'info.picocli:picocli:4.6.1'
+    annotationProcessor 'info.picocli:picocli-codegen:4.6.1'
 }
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'com.nslauncher.patcher.AuthlibPatcher'
+        )
+    }
+}
+
+
+graalvmNative {
+    binaries {
+        main {
+            // Main options
+            imageName = 'authlib-patcher-lib' // The name of the native image, defaults to the project name
+            //debug = true // Determines if debug info should be generated, defaults to false
+            //verbose = true // Add verbose output, defaults to false
+            //fallback = true // Sets the fallback mode of native-image, defaults to false
+            sharedLibrary = true // Determines if image is a shared library, defaults to false if `java-library` plugin isn't included
+            buildArgs( '--allow-incomplete-classpath')
+            configurationFileDirectories.from(file('config'))
+            // Development options
+            //agent = true // Enables the reflection agent. Can be also set on command line using '-Pagent'
+
+            useFatJar = false // Instead of passing each jar individually, builds a fat jar
+        }
+    }
+}
+
+

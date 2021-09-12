@@ -1,0 +1,12 @@
+{
+  "resources":{
+  "includes":[
+    {"pattern":"\\Qjava/io/Serializable.class\\E"}, 
+    {"pattern":"\\Qjava/lang/Exception.class\\E"}, 
+    {"pattern":"\\Qjava/lang/InterruptedException.class\\E"}, 
+    {"pattern":"\\Qjava/lang/Object.class\\E"}, 
+    {"pattern":"\\Qjava/lang/Throwable.class\\E"}, 
+    {"pattern":"\\Qjava/util/Iterator.class\\E"}
+  ]},
+  "bundles":[]
+}
