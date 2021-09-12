@@ -2,6 +2,8 @@ package com.nslauncher.patcher.transformers;
 
 import com.nslauncher.patcher.config.Config;
 
+import java.io.IOException;
+
 /**
  * @author Jeb
  */
@@ -12,7 +14,7 @@ public abstract class Transformer {
         this.classLocation = classLocation;
     }
 
-    public abstract byte[] transform(byte[] bytecode, Config config);
+    public abstract byte[] transform(byte[] bytecode, Config config) throws IOException;
 
     public String getClassLocation() {
         return classLocation;

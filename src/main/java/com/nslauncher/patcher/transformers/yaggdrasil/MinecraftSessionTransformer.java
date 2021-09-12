@@ -5,6 +5,9 @@ import com.nslauncher.patcher.transformers.Transformer;
 import com.nslauncher.patcher.visitors.MethodTrueVisitor;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
+
+import java.util.Optional;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -20,14 +23,23 @@ public class MinecraftSessionTransformer extends Transformer {
     @Override
     public byte[] transform(byte[] bytecode, Config config) {
         ClassReader classReader = new ClassReader(bytecode);
-        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_MAXS);
+        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES);
         ClassNode classNode = new ClassNode();
         classReader.accept(classNode, 0);
-        if (classNode.methods.stream().noneMatch(methodNode -> methodNode.name.equals("proxyUrl"))) {
-            MethodVisitor methodVisitor;
-            methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_STATIC, "proxyUrl", "(Ljava/lang/String;)Ljava/net/URL;", null, null);
-            makeProxy(methodVisitor, config);
+        final Optional<FieldNode> baseUrlOptional = classNode.fields
+                .stream()
+                .filter(fn -> fn.name.equals("baseUrl")).findFirst();
+        boolean hasBaseUrl;
+        if (baseUrlOptional.isPresent()) {
+            hasBaseUrl = true;
+            baseUrlOptional.get().access = ACC_PRIVATE;
+        } else {
+            hasBaseUrl = false;
         }
+        classNode.fields
+                .stream()
+                .filter(fn -> fn.name.equals("CHECK_URL"))
+                .forEach(fn -> fn.access = ACC_PRIVATE | ACC_STATIC);
         if (classNode.methods.stream().noneMatch(methodNode -> methodNode.name.equals("launcherJoinRequest"))) {
             MethodVisitor methodVisitor;
             methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_NATIVE, "launcherJoinRequest", "(Lcom/mojang/authlib/yggdrasil/request/JoinMinecraftServerRequest;)V", null, null);
@@ -38,10 +50,10 @@ public class MinecraftSessionTransformer extends Transformer {
             public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 MethodVisitor visitor = super.visitMethod(access, name, descriptor, signature, exceptions);
                 if ("<init>".equals(name) && "(Lcom/mojang/authlib/yggdrasil/YggdrasilAuthenticationService;Lcom/mojang/authlib/Environment;)V".equals(descriptor)) {
-                    return new ConstructorVisitor(visitor);
+                    return new ConstructorVisitor(visitor, config);
                 }
                 if ("<clinit>".equals(name)) {
-                    return new ConstructorVisitor(visitor);
+                    return new StaticInitializerVisitor(visitor, config);
                 }
                 if ("isWhitelistedDomain".equals(name)) {
                     return new MethodTrueVisitor(visitor);
@@ -49,65 +61,62 @@ public class MinecraftSessionTransformer extends Transformer {
                 if ("joinServer".equals(name)) {
                     return new JoinServerVisitor(visitor);
                 }
-                if ("proxyUrl".equals(name)) {
-                    return new ProxyVisitor(visitor, config);
+                if ("fillGameProfile".equals(name) && !hasBaseUrl) {
+                    return new FillGameProfileVisitor(visitor, config);
                 }
                 return visitor;
             }
-
         });
         return classWriter.toByteArray();
     }
 
-    private static void makeProxy(MethodVisitor methodVisitor, Config config) {
-        methodVisitor.visitCode();
-        Label label0 = new Label();
-        methodVisitor.visitLabel(label0);
-        methodVisitor.visitLineNumber(10, label0);
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitLdcInsn("join");
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", false);
-        Label label1 = new Label();
-        methodVisitor.visitJumpInsn(IFEQ, label1);
-        Label label2 = new Label();
-        methodVisitor.visitLabel(label2);
-        methodVisitor.visitLineNumber(11, label2);
-        methodVisitor.visitLdcInsn(config.getBaseUrl() + "/join");
-        methodVisitor.visitMethodInsn(INVOKESTATIC, "com/mojang/authlib/HttpAuthenticationService", "constantURL", "(Ljava/lang/String;)Ljava/net/URL;", false);
-        methodVisitor.visitInsn(ARETURN);
-        methodVisitor.visitLabel(label1);
-        methodVisitor.visitLineNumber(13, label1);
-        methodVisitor.visitFrame(F_NEW, 0, null, 0, null);
-        methodVisitor.visitLdcInsn(config.getBaseUrl() + "/hasJoined");
-        methodVisitor.visitMethodInsn(INVOKESTATIC, "com/mojang/authlib/HttpAuthenticationService", "constantURL", "(Ljava/lang/String;)Ljava/net/URL;", false);
-        methodVisitor.visitInsn(ARETURN);
-        Label label3 = new Label();
-        methodVisitor.visitLabel(label3);
-        methodVisitor.visitLocalVariable("url", "Ljava/lang/String;", null, label0, label3, 0);
-        methodVisitor.visitMaxs(1, 1);
-        methodVisitor.visitEnd();
-    }
 
-    public static class ProxyVisitor extends MethodVisitor {
+    public static class StaticInitializerVisitor extends MethodVisitor {
         private final Config config;
-        private final MethodVisitor methodVisitor;
 
-        public ProxyVisitor(MethodVisitor visitor, Config config) {
-            super(ASM5);
+        public StaticInitializerVisitor(MethodVisitor methodVisitor, Config config) {
+            super(ASM5, methodVisitor);
             this.config = config;
-            this.methodVisitor = visitor;
         }
 
         @Override
-        public void visitCode() {
-           makeProxy(methodVisitor, config);
+        public void visitInsn(int opcode) {
+            if (opcode == RETURN) {
+                Label label = new Label();
+                super.visitLabel(label);
+                super.visitLdcInsn(String.format("%shasJoined", config.getBaseUrl()));
+                super.visitMethodInsn(INVOKESTATIC, "com/mojang/authlib/HttpAuthenticationService", "constantURL", "(Ljava/lang/String;)Ljava/net/URL;", false);
+                super.visitFieldInsn(PUTSTATIC, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService", "CHECK_URL", "Ljava/net/URL;");
+            }
+            super.visitInsn(opcode);
         }
+
     }
 
     public static class ConstructorVisitor extends MethodVisitor {
+        private final Config config;
 
-        public ConstructorVisitor(MethodVisitor methodVisitor) {
+        public ConstructorVisitor(MethodVisitor methodVisitor, Config config) {
             super(ASM5, methodVisitor);
+            this.config = config;
+        }
+
+
+        @Override
+        public void visitInsn(int opcode) {
+            if (opcode == RETURN) {
+                Label label = new Label();
+                super.visitLabel(label);
+                super.visitVarInsn(ALOAD, 0);
+                super.visitLdcInsn(config.getBaseUrl());
+                super.visitFieldInsn(PUTFIELD, "com/mojang/authlib/yggdrasil/YggdrasilMinecraftSessionService", "baseUrl", "Ljava/lang/String;");
+            }
+            super.visitInsn(opcode);
+        }
+
+        @Override
+        public void visitLabel(Label label) {
+            super.visitLabel(label);
         }
 
         @Override
@@ -180,5 +189,36 @@ public class MinecraftSessionTransformer extends Transformer {
             methodVisitor.visitMaxs(3, 5);
             methodVisitor.visitEnd();
         }
+    }
+
+    private static class FillGameProfileVisitor extends MethodVisitor {
+        private final Config config;
+        private int constantCalls = 0;
+
+        public FillGameProfileVisitor(MethodVisitor visitor, Config config) {
+            super(ASM5, visitor);
+            this.config = config;
+
+        }
+
+        @Override
+        public void visitCode() {
+            Label label0 = new Label();
+            super.visitLabel(label0);
+            super.visitInsn(ICONST_0);
+            super.visitVarInsn(ISTORE, 2);
+            super.visitCode();
+        }
+
+        @Override
+        public void visitLdcInsn(Object value) {
+            constantCalls++;
+            if (constantCalls == 1) {
+                super.visitLdcInsn(String.format("%sprofile", config.getBaseUrl()));
+            } else {
+                super.visitLdcInsn(value);
+            }
+        }
+
     }
 }
