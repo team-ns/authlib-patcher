@@ -6,18 +6,11 @@ jobs:
     name: 'Build Non-Windows Image'
     strategy:
       matrix:
-        os: [ 'ubuntu-latest', 'macos-latest' ]
-        extension: [ 'so', 'dylib' ]
+        os: [ 'ubuntu-latest' ]
+        extension: [ 'so' ]
         include:
           - os: 'ubuntu-latest'
             label: 'linux'
-          - os: 'macos-latest'
-            label: 'mac'
-        exclude:
-          - os: 'ubuntu-latest'
-            extension: 'dylib'
-          - os: 'macos-latest'
-            extension: 'so'
     runs-on: ${{matrix.os}}
 
     steps:
@@ -34,7 +27,7 @@ jobs:
 
       - name: 'Install Native Image Plugin'
         run: |
-          gu.cmd install native-image
+          gu install native-image
 
       - name: 'Build Native Image'
         run: |
