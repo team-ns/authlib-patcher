@@ -5,6 +5,7 @@ import com.nslauncher.patcher.config.Config;
 import com.nslauncher.patcher.helper.JarHelper;
 import com.nslauncher.patcher.transformers.Transformer;
 import com.nslauncher.patcher.transformers.bungee.BungeeTransformer;
+import com.nslauncher.patcher.transformers.yaggdrasil.GameProfileRepositoryTransformer;
 import com.nslauncher.patcher.transformers.yaggdrasil.MinecraftSessionTransformer;
 import com.nslauncher.patcher.transformers.yaggdrasil.PropertyTransformer;
 import picocli.CommandLine;
@@ -24,6 +25,7 @@ public class AuthlibPatcher {
     static Set<Transformer> transformers = Set.of(
             new PropertyTransformer(),
             new MinecraftSessionTransformer(),
+            new GameProfileRepositoryTransformer(),
             new BungeeTransformer()
     );
 
