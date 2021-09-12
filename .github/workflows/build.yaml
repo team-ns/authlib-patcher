@@ -4,19 +4,20 @@ on: push
 jobs:
   build-non-windows-image:
     name: 'Build Non-Windows Image'
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
-        gu-binary: [ gu.cmd ]
+        os: [ 'ubuntu-latest', 'macos-latest' ]
+        gu-binary: [ 'gu.cmd' ]
         exclude:
           - os: ubuntu-latest
             gu-binary: gu.cmd
           - os: macos-latest
             gu-binary: gu.cmd
+    runs-on: ${{ matrix.os }}
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
+
       - name: Setup Graalvm
         id: setup-graalvm
         uses: DeLaGuardo/setup-graalvm@master
@@ -24,6 +25,7 @@ jobs:
           graalvm: '21.2.0'
           java: 'java11'
           arch: 'amd64'
+
       - name: Install native-image component
         run: |
           ${{ matrix.gu-binary }} install native-image
@@ -69,9 +71,14 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           gradlew.bat nativeCompile
 
+      - name: 'Directory Tree'
+        shell: cmd
+        run: |
+          tree /f
+
       - name: 'Publish Windows Image'
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: 'authlib-patcher-lib-windows.exe'
-          path: 'build/native/nativeCompile/authlib-patcher-lib.exe'
+          path: 'build\native\nativeCompile\authlib-patcher-lib.exe'
