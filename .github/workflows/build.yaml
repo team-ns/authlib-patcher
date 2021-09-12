@@ -55,6 +55,7 @@ jobs:
           arch: 'amd64'
 
       - name: Install native-image component
+        shell: cmd
         run: |
           gu install native-image
 
