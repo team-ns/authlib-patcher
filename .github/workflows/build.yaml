@@ -29,6 +29,10 @@ jobs:
         run: |
           gu install native-image
 
+      - name: Make gradlew executable
+        run: |
+          chmod +x ./gradlew
+
       - name: 'Build Native Image'
         run: |
           ./gradlew nativeCompile
