@@ -7,13 +7,19 @@ jobs:
     strategy:
       matrix:
         os: [ 'ubuntu-latest', 'macos-latest' ]
-        gu-binary: [ 'gu.cmd' ]
+        extension: [ 'so', 'dylib' ]
+        include:
+          - os: 'ubuntu-latest'
+            label: 'linux'
+          - os: 'macos-latest'
+            label: 'mac'
         exclude:
-          - os: ubuntu-latest
-            gu-binary: gu.cmd
-          - os: macos-latest
-            gu-binary: gu.cmd
-    runs-on: ${{ matrix.os }}
+          - os: 'ubuntu-latest'
+            extension: 'dylib'
+          - os: 'macos-latest'
+            extension: 'so'
+    runs-on: ${{matrix.os}}
+
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
@@ -26,9 +32,10 @@ jobs:
           java: 'java11'
           arch: 'amd64'
 
-      - name: Install native-image component
+      - name: 'Install Native Image Plugin'
         run: |
-          ${{ matrix.gu-binary }} install native-image
+          gu.cmd install native-image
+
       - name: 'Build Native Image'
         run: |
           ./gradlew nativeCompile
@@ -37,8 +44,8 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: 'authlib-patcher-${{matrix.label}}'
-          path: 'build/native/nativeCompile/authlib-patcher-lib'
+          name: 'authlib-patcher-${{matrix.label}}.${{matrix.extension}}'
+          path: 'build/native/nativeCompile/authlib-patcher-lib.${{matrix.extension}}'
 
   build-windows-image:
     name: 'Build Windows Image'
@@ -71,14 +78,9 @@ jobs:
           call "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
           gradlew.bat nativeCompile
 
-      - name: 'Directory Tree'
-        shell: cmd
-        run: |
-          tree /f
-
       - name: 'Publish Windows Image'
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: 'authlib-patcher-lib-windows.exe'
-          path: 'build\native\nativeCompile\authlib-patcher-lib.exe'
+          name: 'authlib-patcher-lib-windows.dll'
+          path: 'build\native\nativeCompile\authlib-patcher-lib.dll'
