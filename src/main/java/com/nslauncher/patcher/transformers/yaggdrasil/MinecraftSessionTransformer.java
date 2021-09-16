@@ -61,8 +61,12 @@ public class MinecraftSessionTransformer extends Transformer {
                 if ("joinServer".equals(name)) {
                     return new JoinServerVisitor(visitor);
                 }
-                if ("fillGameProfile".equals(name) && !hasBaseUrl) {
-                    return new FillGameProfileVisitor(visitor, config);
+                if ("fillGameProfile".equals(name)) {
+                    if (hasBaseUrl) {
+                        return new FillGameProfileVisitor(visitor);
+                    } else {
+                        return new FillGameProfileUrlVisitor(visitor, config);
+                    }
                 }
                 return visitor;
             }
@@ -192,15 +196,9 @@ public class MinecraftSessionTransformer extends Transformer {
     }
 
     private static class FillGameProfileVisitor extends MethodVisitor {
-        private final Config config;
-        private int constantCalls = 0;
-
-        public FillGameProfileVisitor(MethodVisitor visitor, Config config) {
+        public FillGameProfileVisitor(MethodVisitor visitor) {
             super(ASM5, visitor);
-            this.config = config;
-
         }
-
         @Override
         public void visitCode() {
             Label label0 = new Label();
@@ -208,6 +206,17 @@ public class MinecraftSessionTransformer extends Transformer {
             super.visitInsn(ICONST_0);
             super.visitVarInsn(ISTORE, 2);
             super.visitCode();
+        }
+    }
+
+    private static class FillGameProfileUrlVisitor extends FillGameProfileVisitor {
+        private final Config config;
+        private int constantCalls = 0;
+
+        public FillGameProfileUrlVisitor(MethodVisitor visitor, Config config) {
+            super(visitor);
+            this.config = config;
+
         }
 
         @Override
